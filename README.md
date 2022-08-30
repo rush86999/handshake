@@ -14,3 +14,7 @@ Calendly works many scenarios but there is a strong critic about Calendly. It en
 
 ## Sponsored by [Atomic](https://www.atomiclife.app)
 As priorities change, your Google calendar get rearranged using AI.
+
+
+## License
+MIT
