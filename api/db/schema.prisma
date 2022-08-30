@@ -76,12 +76,14 @@ model EventType {
   /// @zod.custom(imports.successRedirectUrl)
   successRedirectUrl      String?
   workflows               WorkflowsOnEventTypes[]
+  createdDate             DateTime                @default(now()) @map(name: "created")
+  updatedDate             DateTime                @default(now()) @map(name: "updated")
   @@unique([userId, slug])
   @@unique([teamId, slug])
 }
 
 model User {
-  id                   Int                     @id @default(autoincrement())
+  id                   String                  @id @default(uuid())
   username             String?                 @unique
   name                 String?
   /// @zod.email()
@@ -92,10 +94,6 @@ model User {
   avatar               String?
   timeZone             String                  @default("Europe/London")
   weekStart            String                  @default("Sunday")
-  // DEPRECATED - TO BE REMOVED
-  startTime            Int                     @default(0)
-  endTime              Int                     @default(1440)
-  // </DEPRECATED>
   bufferTime           Int                     @default(0)
   hideBranding         Boolean                 @default(false)
   theme                String?
@@ -113,7 +111,7 @@ model User {
   timeFormat           Int?                    @default(12)
   twoFactorSecret      String?
   twoFactorEnabled     Boolean                 @default(false)
-  identityProvider     IdentityProvider        @default(CAL)
+  identityProvider     IdentityProvider        @default(GOOGLE)
   identityProviderId   String?
   availability         Availability[]
   invitedTo            Int?
@@ -166,7 +164,7 @@ model Booking {
   id                    Int                  @id @default(autoincrement())
   uid                   String               @unique
   user                  User?                @relation(fields: [userId], references: [id])
-  userId                Int?
+  userId                String?
   references            BookingReference[]
   eventType             EventType?           @relation(fields: [eventTypeId], references: [id])
   eventTypeId           Int?
@@ -226,15 +224,99 @@ model Webhook {
 }
 
 model DestinationCalendar {
-  id           Int         @id @default(autoincrement())
+  id           String         @id @default(uuid())
   integration  String
   externalId   String
   user         User?       @relation(fields: [userId], references: [id])
   userId       Int?        @unique
   booking      Booking[]
   eventType    EventType?  @relation(fields: [eventTypeId], references: [id])
-  eventTypeId  Int?        @unique
-  credentialId Int?
+  eventTypeId  String?        @unique
+  credentialId String?
   credential   Credential? @relation(fields: [credentialId], references: [id])
 }
+
+model EventTypeCustomInput {
+  id          Int                      @id @default(autoincrement())
+  eventTypeId Int
+  eventType   EventType                @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  label       String
+  type        EventTypeCustomInputType
+  required    Boolean
+  placeholder String                   @default("")
+}
+
+model Schedule {
+  id           Int            @id @default(autoincrement())
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  eventType    EventType[]
+  name         String
+  timeZone     String?
+  availability Availability[]
+}
+
+model WorkflowsOnEventTypes {
+  id          String       @id @default(uuid())
+  workflow    Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowId  Int
+  eventType   EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  eventTypeId Int
+}
+
+model Credential {
+  id                   Int                   @id @default(autoincrement())
+  type                 String
+  key                  Json
+  user                 User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId               Int?
+  app                  App?                  @relation(fields: [appId], references: [slug], onDelete: Cascade)
+  // How to make it a required column?
+  appId                String?
+  destinationCalendars DestinationCalendar[]
+}
+
+
+model Membership {
+  teamId               Int
+  userId               Int
+  accepted             Boolean        @default(false)
+  role                 MembershipRole
+  team                 Team           @relation(fields: [teamId], references: [id])
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  disableImpersonation Boolean        @default(false)
+  @@id([userId, teamId])
+}
+
+
+model BookingReference {
+  id                 String      @id @default(uuid())
+  type               String
+  uid                String
+  meetingId          String?
+  meetingPassword    String?
+  meetingUrl         String?
+  booking            Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId          Int?
+  externalCalendarId String?
+  deleted            Boolean?
+  credentialId       Int?
+}
+
+model SelectedCalendar {
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  integration String
+  externalId  String
+  @@id([userId, integration, externalId])
+}
+
+
+enum IdentityProvider {
+  CAL
+  GOOGLE
+  SAML
+}
+
+
 
