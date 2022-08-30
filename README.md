@@ -1,6 +1,7 @@
 # README
 
 Welcome to Handshake
+
 The open-source alternative to Calendly that is convenient and polite
 
 ## Status
